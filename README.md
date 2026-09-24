@@ -1,5 +1,7 @@
 # Prompt Flow Accelerator 2.0
 
+La versión pública se abre en [GitHub Pages](https://jotures.github.io/prompt-flow-accelerator/). En iPhone, la navegación inferior, el editor y los diálogos se adaptan a pantallas pequeñas y respetan las zonas seguras. Los proyectos se guardan en el navegador y origen donde se crean: para trasladarlos desde otra dirección o dispositivo, exporta una copia e impórtala en el nuevo navegador.
+
 Aplicación local para evaluar, refinar y comparar prompts con una IA externa. No requiere cuentas, servidor, claves API ni conexión a internet para utilizar la aplicación.
 
 ## Abrir

@@ -82,6 +82,7 @@ dialog[data-kind^=test] label{margin-top:14px}dialog[data-kind^=test] textarea.f
 .test-human{border-top:1px solid var(--line);margin-top:18px;padding-top:4px}.test-table-wrap{overflow:auto;margin:16px 0 24px}.test-table{width:100%;border-collapse:collapse;font-size:.8rem;text-align:left}.test-table td,.test-table th{padding:12px;border-bottom:1px solid var(--line);vertical-align:top;min-width:130px;max-width:340px;overflow-wrap:anywhere}.test-table small{display:block;color:var(--muted);font-weight:400;margin-top:8px;white-space:pre-wrap}
 .test-check-editor{border:1px solid var(--line);border-radius:8px;padding:14px;margin:15px 0}.test-check-head{display:flex;align-items:end;gap:16px;justify-content:space-between}.test-check-head label{flex:1;margin:0!important}.test-check-editor textarea{font-family:inherit}.test-schema-help{margin:15px 0}.test-schema-help p{margin-top:10px}
 .test-check-editor select{max-width:100%;min-width:0}.test-hypotheses{padding:20px;overflow-wrap:anywhere}.test-hypotheses>p{margin:10px 0 18px}.test-hypothesis{padding:14px 0;border-top:1px solid var(--line)}.test-hypothesis p{margin:8px 0}.test-hypothesis details{margin-top:10px}
+.nav-label-mobile,.mobile-step-label{display:none}
 @media(max-width:650px){.test-case-data,.test-outputs{grid-template-columns:1fr}.test-run-row{align-items:flex-start;flex-direction:column}.test-run-row>.btn{width:100%}.test-output{padding:12px}.test-outputs{gap:15px}.test-table td,.test-table th{padding:9px;min-width:105px}.test-check-head{gap:5px}.test-check-head .btn{padding:10px}.test-two{gap:10px}}
 .refinement-review .panel-head{gap:12px;flex-wrap:wrap}
 .review-change{padding:18px 21px;border-top:1px solid var(--line)}
@@ -99,8 +100,20 @@ dialog[data-kind^=test] label{margin-top:14px}dialog[data-kind^=test] textarea.f
   .step:not(:last-child):after{display:none}
 }
 @media(max-width:650px){
+  .nav-label-desktop{display:none}.nav-label-mobile{display:inline}
+  .topbar{height:calc(63px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
+  .workspace{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
+  .sidebar{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+  .main-shell{padding-bottom:calc(85px + env(safe-area-inset-bottom))}
+  .nav button{min-height:56px;font-size:.72rem;white-space:nowrap}
+  .step-progress{margin-bottom:19px;padding:12px 13px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  .stepper{padding:0;margin:0;gap:5px;background:none;border:0}
+  .step{display:block;flex:1;min-width:0}
+  .step:not(:last-child):after,.step>span:last-child{display:none}
+  .step-num,.step.current .step-num,.step.done .step-num{display:block;width:100%;height:5px;border:0;border-radius:5px;font-size:0;background:var(--line)}
+  .step.current .step-num{background:var(--accent)}.step.done .step-num{background:var(--success)}
+  .mobile-step-label{display:block;margin-top:9px;color:var(--subtle);font-size:.75rem}
   html{scrollbar-gutter:auto}
-  .stepper{gap:2px;padding:13px 5px}
   .step{font-size:.62rem;gap:7px}
   .editor-options summary{flex-wrap:wrap;align-items:center}
   .editor-options summary>span{font-size:.72rem}

@@ -2,7 +2,7 @@
 <html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Evalúa, refina y compara tus prompts. Tu trabajo se guarda en este navegador, sin cuentas ni conexión con proveedores.">
   <meta name="color-scheme" content="dark light">
   <title>Prompt Flow — Tu laboratorio de prompts</title>
@@ -90,6 +90,7 @@ dialog[data-kind^=test] label{margin-top:14px}dialog[data-kind^=test] textarea.f
 .test-human{border-top:1px solid var(--line);margin-top:18px;padding-top:4px}.test-table-wrap{overflow:auto;margin:16px 0 24px}.test-table{width:100%;border-collapse:collapse;font-size:.8rem;text-align:left}.test-table td,.test-table th{padding:12px;border-bottom:1px solid var(--line);vertical-align:top;min-width:130px;max-width:340px;overflow-wrap:anywhere}.test-table small{display:block;color:var(--muted);font-weight:400;margin-top:8px;white-space:pre-wrap}
 .test-check-editor{border:1px solid var(--line);border-radius:8px;padding:14px;margin:15px 0}.test-check-head{display:flex;align-items:end;gap:16px;justify-content:space-between}.test-check-head label{flex:1;margin:0!important}.test-check-editor textarea{font-family:inherit}.test-schema-help{margin:15px 0}.test-schema-help p{margin-top:10px}
 .test-check-editor select{max-width:100%;min-width:0}.test-hypotheses{padding:20px;overflow-wrap:anywhere}.test-hypotheses>p{margin:10px 0 18px}.test-hypothesis{padding:14px 0;border-top:1px solid var(--line)}.test-hypothesis p{margin:8px 0}.test-hypothesis details{margin-top:10px}
+.nav-label-mobile,.mobile-step-label{display:none}
 @media(max-width:650px){.test-case-data,.test-outputs{grid-template-columns:1fr}.test-run-row{align-items:flex-start;flex-direction:column}.test-run-row>.btn{width:100%}.test-output{padding:12px}.test-outputs{gap:15px}.test-table td,.test-table th{padding:9px;min-width:105px}.test-check-head{gap:5px}.test-check-head .btn{padding:10px}.test-two{gap:10px}}
 .refinement-review .panel-head{gap:12px;flex-wrap:wrap}
 .review-change{padding:18px 21px;border-top:1px solid var(--line)}
@@ -107,8 +108,20 @@ dialog[data-kind^=test] label{margin-top:14px}dialog[data-kind^=test] textarea.f
   .step:not(:last-child):after{display:none}
 }
 @media(max-width:650px){
+  .nav-label-desktop{display:none}.nav-label-mobile{display:inline}
+  .topbar{height:calc(63px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
+  .workspace{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
+  .sidebar{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+  .main-shell{padding-bottom:calc(85px + env(safe-area-inset-bottom))}
+  .nav button{min-height:56px;font-size:.72rem;white-space:nowrap}
+  .step-progress{margin-bottom:19px;padding:12px 13px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  .stepper{padding:0;margin:0;gap:5px;background:none;border:0}
+  .step{display:block;flex:1;min-width:0}
+  .step:not(:last-child):after,.step>span:last-child{display:none}
+  .step-num,.step.current .step-num,.step.done .step-num{display:block;width:100%;height:5px;border:0;border-radius:5px;font-size:0;background:var(--line)}
+  .step.current .step-num{background:var(--accent)}.step.done .step-num{background:var(--success)}
+  .mobile-step-label{display:block;margin-top:9px;color:var(--subtle);font-size:.75rem}
   html{scrollbar-gutter:auto}
-  .stepper{gap:2px;padding:13px 5px}
   .step{font-size:.62rem;gap:7px}
   .editor-options summary{flex-wrap:wrap;align-items:center}
   .editor-options summary>span{font-size:.72rem}
@@ -1123,13 +1136,14 @@ PFA.createTestingUI = helpers => {
   async function closeDialog() { await testingUI?.save(); await saveResponseDraft(); transferId = null; dialog.close(); restoreFocus(); }
   function sidebar() {
     return '<aside class="sidebar"><div class="brand"><div class="brand-mark">' + icon('bolt') + '</div><div><div class="brand-name">Prompt Flow</div><small>Accelerator / 2.0</small></div></div><nav class="nav" aria-label="Navegación principal">' +
-      [['prompt', 'edit', 'Espacio de trabajo'], ['analysis', 'chart', 'Análisis'], ['versions', 'layers', 'Versiones'], ['tests', 'flask', 'Pruebas']].map(([key, sym, name]) => '<button data-action="navigate" data-view="' + key + '" ' + (view === key ? 'aria-current="page"' : '') + '>' + icon(sym) + name + (key === 'versions' ? '<span class="nav-count">' + (bundle?.versions.length || 0) + '</span>' : '') + '</button>').join('') + '</nav><div class="projects-section"><div class="side-label"><span class="eyebrow">Tus proyectos</span><button class="icon-btn" data-action="new-project" aria-label="Nuevo proyecto">' + icon('plus') + '</button></div><div class="project-list">' +
+      [['prompt', 'edit', 'Espacio de trabajo'], ['analysis', 'chart', 'Análisis'], ['versions', 'layers', 'Versiones'], ['tests', 'flask', 'Pruebas']].map(([key, sym, name]) => '<button data-action="navigate" data-view="' + key + '" aria-label="' + name + '" ' + (view === key ? 'aria-current="page"' : '') + '>' + icon(sym) + (key === 'prompt' ? '<span class="nav-label-desktop">' + name + '</span><span class="nav-label-mobile">Editor</span>' : '<span>' + name + '</span>') + (key === 'versions' ? '<span class="nav-count">' + (bundle?.versions.length || 0) + '</span>' : '') + '</button>').join('') + '</nav><div class="projects-section"><div class="side-label"><span class="eyebrow">Tus proyectos</span><button class="icon-btn" data-action="new-project" aria-label="Nuevo proyecto">' + icon('plus') + '</button></div><div class="project-list">' +
       projects.filter(p => !p.archived).map(p => '<button class="project-row ' + (p.id === bundle?.project.id ? 'active' : '') + '" data-action="open-project" data-id="' + esc(p.id) + '">' + icon('folder') + '<span>' + esc(p.title) + '</span></button>').join('') + '</div></div><div class="side-bottom"><div>' + button('projects', 'Todos los proyectos', 'folder', 'ghost full') + button('settings', 'Preferencias', 'settings', 'ghost full') + '</div><div class="local-note"><strong>' + icon('lock') + 'Tu espacio, en local</strong>Guardado en este navegador.<br>Sin cuentas ni conexiones a IA.</div></div></aside>';
   }
   function stepper() {
     const state = PFA.derive(bundle), v = PFA.working(bundle), action = state.pending?.operation || state.action;
     const index = ({ ANALYZE: 0, EVALUATE: v?.parentVersionId ? 3 : 1, REFINE: 2, COMPARE: 4, DECIDE: 5, ITERATE: 5 })[action] ?? 0;
-    return '<div class="stepper" aria-label="Progreso del proceso">' + ['Prompt', 'Evaluar', 'Refinar', 'Reevaluar', 'Comparar', 'Decidir'].map((name, i) => '<div class="step ' + (i < index ? 'done' : i === index ? 'current' : '') + '" ' + (i === index ? 'aria-current="step"' : '') + '><span class="step-num">' + (i < index ? '✓' : '0' + (i + 1)) + '</span><span>' + name + '</span></div>').join('') + '</div>';
+    const names = ['Prompt', 'Evaluar', 'Refinar', 'Reevaluar', 'Comparar', 'Decidir'];
+    return '<div class="step-progress"><div class="stepper" aria-label="Progreso del proceso">' + names.map((name, i) => '<div class="step ' + (i < index ? 'done' : i === index ? 'current' : '') + '" ' + (i === index ? 'aria-current="step"' : '') + '><span class="step-num">' + (i < index ? '✓' : '0' + (i + 1)) + '</span><span>' + name + '</span></div>').join('') + '</div><p class="mobile-step-label">Paso ' + (index + 1) + ' de 6 · ' + names[index] + '</p></div>';
   }
   function lintPanel(text) {
     const findings = PFA.lint(text);
