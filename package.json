@@ -1,0 +1,17 @@
+{
+  "name": "prompt-flow-accelerator",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Laboratorio local de evaluación y refinamiento de prompts",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/core.test.cjs tests/testing.test.cjs",
+    "test:e2e": "node tests/browser.cjs && node tests/management.cjs && node tests/iteration.cjs && node tests/review.cjs && node tests/testing-browser.cjs",
+    "start": "node scripts/serve.mjs"
+  },
+  "devDependencies": {
+    "agent-browser": "^0.38.1",
+    "fake-indexeddb": "^6.2.5",
+    "playwright": "^1.63.0"
+  }
+}

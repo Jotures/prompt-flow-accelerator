@@ -1,0 +1,107 @@
+const { chromium } = require('playwright');
+const { pathToFileURL } = require('node:url');
+const path = require('node:path');
+const fs = require('node:fs/promises');
+const assert = require('node:assert/strict');
+const { fixture } = require('./fixtures.cjs');
+const root = path.resolve(__dirname, '..'), out = path.join(root, 'test-results');
+let browser, page; const errors = [], checks = [];
+const settle = () => page.waitForFunction(() => document.querySelector('#app').getAttribute('aria-busy') !== 'true');
+const click = async name => { await page.locator('[data-action="' + name + '"]').first().click(); await settle(); };
+const bundle = () => page.evaluate(() => PFA_APP.getBundle());
+async function importResponse(options) {
+  const b = await bundle(), req = b.requests.find(r => ['CREATED','COPIED','WAITING_RESPONSE','INVALID_RESPONSE'].includes(r.status));
+  await page.locator('#response-input').fill(fixture(req, options).response); await click('import-response');
+  await page.waitForFunction(rid => PFA_APP.getBundle().requests.find(r => r.id === rid)?.status === 'COMPLETED', req.id);
+}
+(async () => {
+  await fs.mkdir(out, { recursive: true });
+  browser = await chromium.launch({ channel: 'chrome', headless: true });
+  const context = await browser.newContext({ viewport: { width: 1366, height: 900 } }); page = await context.newPage();
+  page.on('pageerror', e => errors.push(e.message));
+  await page.goto(pathToFileURL(path.join(root, 'index.html')).href); await page.waitForFunction(() => !!window.PFA_APP);
+  await click('rename'); await page.locator('#project-name').fill('Proyecto A'); await click('save-name');
+  await page.getByLabel('Tu prompt', { exact: true }).fill('Investiga la evolución del mercado con fuentes.');
+  const draft = await page.locator('#prompt-editor').inputValue(), compactEditor = await page.locator('#prompt-editor').boundingBox();
+  await click('toggle-editor');
+  assert.ok((await page.locator('#prompt-editor').boundingBox()).width > compactEditor.width);
+  assert.equal(await page.locator('#prompt-editor').inputValue(), draft);
+  assert.equal(await page.locator('[data-action="toggle-editor"]').getAttribute('aria-pressed'), 'true');
+  await page.screenshot({ path: path.join(out, 'editor-expanded.png') });
+  await click('toggle-editor');
+  await page.locator('.editor-options summary').click();
+  await page.locator('#task-profile').selectOption('RESEARCH'); await settle();
+  await page.waitForFunction(() => PFA_APP.getBundle().project.taskProfile.primary === 'RESEARCH' && document.querySelector('.editor-options').open);
+  await page.locator('#analysis-depth').selectOption('QUICK');
+  await page.waitForFunction(() => PFA_APP.getBundle().project.analysisDepth === 'QUICK');
+  await page.keyboard.press('Control+Enter'); await settle(); await page.locator('#response-input').waitFor();
+  assert.equal(await page.locator('[data-action="import-response"]').isDisabled(), true);
+  await page.locator('#response-input').fill('   ');
+  assert.equal(await page.locator('[data-action="import-response"]').isDisabled(), true);
+  await page.locator('#response-input').fill('');
+  let b = await bundle(); const projectA = b.project.id, requestA = b.requests[0].id;
+  assert.equal(b.requests[0].config.analysisDepth, 'QUICK'); assert.equal(b.requests[0].config.taskProfile.primary, 'RESEARCH');
+  await page.keyboard.press('Escape'); await page.waitForFunction(() => !document.querySelector('#dialog').open);
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'primary-action');
+  assert.equal(await page.locator('.step[aria-current="step"]').innerText(), '02\nEvaluar');
+  await click('new-project'); await page.locator('#project-name').fill('Proyecto B'); await click('create-project');
+  await page.getByLabel('Tu prompt', { exact: true }).fill('Extrae los nombres del texto como JSON.'); await click('primary');
+  b = await bundle(); assert.notEqual(b.project.id, projectA); assert.equal(b.requests.length, 1);
+  await click('close-dialog'); await page.locator('[data-action="open-project"][data-id="' + projectA + '"]').click(); await settle();
+  await click('primary'); assert.equal((await bundle()).requests[0].id, requestA); await importResponse();
+  assert.equal((await bundle()).evaluations[0].config.analysisDepth, 'QUICK');
+  checks.push('Proyectos independientes, configuración manual, atajo y Escape conservan operaciones pendientes');
+  await click('repeat-evaluation'); await importResponse({ score: 80 });
+  await page.getByText('Evaluaciones anteriores · 1', { exact: true }).click();
+  assert.equal((await bundle()).evaluations.length, 2);
+  await click('primary'); await importResponse(); // refine
+  await click('primary'); await importResponse({ better: true }); // reevaluate
+  await click('primary'); await importResponse(); // compare
+  await click('view-evaluation'); await click('repeat-evaluation'); await importResponse({ better: true, score: 88 });
+  await page.locator('[data-view="versions"]').click(); await settle();
+  await page.getByText(/Comparación histórica: hay evaluaciones más recientes/).waitFor();
+  assert.equal(await page.locator('[data-action="adopt"]').count(), 0);
+  await click('primary'); await importResponse(); await click('keep');
+  b = await bundle(); assert.equal(b.project.activeVersionId, b.versions[0].id);
+  checks.push('Historial de evaluaciones accesible; comparación antigua sin adopción; conservar original verificado');
+  await click('projects');
+  await page.locator('#dialog [data-action="archive-toggle"][data-id="' + projectA + '"]').click(); await settle();
+  assert.equal((await bundle()).project.archived, true);
+  await page.locator('#dialog [data-action="open-project"][data-id="' + projectA + '"]').click(); await settle();
+  assert.equal(await page.getByLabel('Tu prompt', { exact: true }).getAttribute('readonly'), '');
+  await click('unarchive'); assert.equal((await bundle()).project.archived, false);
+  const downloadPromise = page.waitForEvent('download'); await click('settings'); await click('export-all'); const downloaded = await downloadPromise;
+  const file = path.join(out, 'all-projects.pfa.json'); await downloaded.saveAs(file);
+  const backup = JSON.parse(await fs.readFile(file, 'utf8')); assert.equal(backup.projects.length, 2);
+  checks.push('Archivo y restauración de proyecto preservan datos; exportación completa incluye ambos proyectos');
+  await click('close-dialog');
+  await page.setViewportSize({ width: 768, height: 1024 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await click('primary'); await settle(); // accepted → iterate
+  await click('primary'); await page.locator('#response-input').waitFor();
+  assert.ok(await page.evaluate(() => document.querySelector('#dialog').scrollWidth <= innerWidth));
+  const dialogBounds = await page.locator('#dialog').boundingBox();
+  assert.ok(dialogBounds.y >= 0 && dialogBounds.y + dialogBounds.height <= 844);
+  const importBounds = await page.locator('[data-action="import-response"]').boundingBox();
+  await page.locator('.dialog-body').evaluate(el => el.scrollTop = el.scrollHeight);
+  assert.deepEqual(await page.locator('[data-action="import-response"]').boundingBox(), importBounds);
+  await page.locator('.dialog-body').evaluate(el => el.scrollTop = 0);
+  await page.screenshot({ path: path.join(out, 'transfer-mobile.png') });
+  await page.keyboard.press('Escape'); await page.waitForFunction(() => !document.querySelector('#dialog').open);
+  await page.setViewportSize({ width: 1366, height: 900 }); await click('settings');
+  await click('clear-data'); await page.locator('#delete-confirm').fill('ELIMINAR'); await click('confirm-clear');
+  assert.equal((await bundle()).versions.length, 0);
+  await page.locator('#file-input').setInputFiles(file);
+  // El orden de exportación depende de los IDs, no de la creación de A/B.
+  await page.waitForFunction(() => ['Proyecto A', 'Proyecto B'].includes(PFA_APP.getBundle().project.title));
+  const all = await page.evaluate(() => PFA_APP.db.read('projects')); assert.equal(all.length, 3); // fresh empty project plus A and B
+  const restoredB = all.find(p => p.title === 'Proyecto B');
+  await page.locator('[data-action="open-project"][data-id="' + restoredB.id + '"]').click(); await settle(); await click('primary');
+  assert.equal((await bundle()).requests[0].status, 'WAITING_RESPONSE');
+  await click('cancel-request');
+  checks.push('Diálogo móvil accesible; borrado explícito e importación sin colisiones recuperan solicitudes pendientes');
+  assert.deepEqual(errors, []);
+  await fs.writeFile(path.join(out, 'management-verification.json'), JSON.stringify({ passed: true, date: new Date().toISOString(), checks, pageErrors: errors }, null, 2));
+  console.log(checks.map(c => 'PASS ' + c).join('\n')); await browser.close();
+})().catch(async error => { console.error(error); if (page) await page.screenshot({ path: path.join(out, 'management-failure.png'), fullPage: true }).catch(() => {}); if (browser) await browser.close(); process.exitCode = 1; });
